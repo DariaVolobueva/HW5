@@ -7,6 +7,21 @@ import (
 	"strings"
 )
 
+type Index struct {
+	WordIndex map[string][]int
+	Lines []string
+}
+
+type SearchResult struct{
+	SearchWord string
+	Results []ResultEntry
+}
+
+type ResultEntry struct {
+	LineNum int
+	Line string
+}
+
 func readLinesFromFile(filename string) ([]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -25,7 +40,7 @@ func readLinesFromFile(filename string) ([]string, error) {
 	return lines, nil
 }
 
-func indexText(lines []string) map[string][]int {
+func newIndex(lines []string) *Index {
 	wordIndex := make(map[string][]int)
 	
 	for i, line := range lines {
@@ -35,17 +50,17 @@ func indexText(lines []string) map[string][]int {
 		}
 	}
 
-	return wordIndex
+	return &Index{WordIndex: wordIndex, Lines: lines}
 }
 
-func searchByWord(word string, wordIndex map[string][]int, lines []string) []string {
-	var results []string
-	if indices, exists := wordIndex[word]; exists {
-		for _, index := range indices {
-			results = append(results, lines[index])
+func (index *Index) searchByWord(word string) SearchResult {
+	var results []ResultEntry
+	if indices, exists := index.WordIndex[word]; exists {
+		for _, lineIndex := range indices {
+			results = append(results, ResultEntry{LineNum: lineIndex, Line: index.Lines[lineIndex]})
 		}
 	}
-	return results
+	return SearchResult{SearchWord: word, Results: results}
 }
 
 func main() {
@@ -56,17 +71,17 @@ func main() {
 		return
 	}
 
-	wordIndex := indexText(lines)
+	index := newIndex(lines)
 
 	fmt.Print("Введіть слово для пошуку: ")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	searchWord := scanner.Text()
 
-	results := searchByWord(searchWord, wordIndex, lines)
+	results := index.searchByWord(searchWord)
 	
 	fmt.Printf("Результати пошуку за словом \"%s\":\n", searchWord)
-	for _, result := range results {
+	for _, result := range results.Results {
 		fmt.Println(result)
 	}
 
